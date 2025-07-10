@@ -5,8 +5,9 @@
 </svg>
 -->
 <body>
-<label>size</label><input type="number" name="size" style="width:48px" value="128">
-<label>width</label><input type="number" name="width" style="width:48px" value="2">
+<label>size</label><input type="number" name="size" style="width:48px" value="128" min="1" max="999">
+<label>width</label><input type="number" name="width" style="width:48px" value="2" min="1" max="999">
+<label>offset</label><input type="number" name="offset" style="width:48px" value="0" min="1"><label>/</label><label name="maxOffset">0</label>
 <script>
 const SVG_NS = 'http://www.w3.org/2000/svg';
 function mkSvgEl(tagName) {return document.createElementNS(SVG_NS ,tagName)}
@@ -41,6 +42,8 @@ function resetArc(path, SIZE, WIDTH) {
 //    path.setAttribute('d', `M${size} 1 A${sz} ${sz} 0 1 1 ${size} ${SIZE-width} A${sz} ${sz} 0 1 1 ${size} ${width}`);
     path.setAttribute('d', `M${size} ${width} A${sz} ${sz} 0 1 1 ${size} ${SIZE-width} A${sz} ${sz} 0 1 1 ${size} ${width}`);
     path.setAttribute('stroke-width', `${WIDTH}`);
+//    document.querySelector(`[name="offset"]`).max = path.getTotalLength();
+    updateMaxOffset();
 }
 function makeArc() {
     const svg = mkSvg(128);
@@ -48,6 +51,30 @@ function makeArc() {
     svg.append(path);
     return svg;
 }
+function updateMaxOffset() {
+    const path = document.querySelector(`path`);
+    const v = Math.ceil(path.getTotalLength());
+    path.style.strokeDasharray = v;
+    //path.style.strokeDashoffset = v;
+    //path.style.strokeDashoffset = offset ?? v;
+    path.style.strokeDashoffset = document.querySelector(`[name="offset"]`).value;
+    document.querySelector(`[name="offset"]`).max = v;
+    document.querySelector(`[name="maxOffset"]`).textContent = v
+//    document.querySelector(`[name="offset"]`).value = v;
+    console.log(`MaxOffset:${v}`);
+}
+/*
+function setOffset(v) {
+//    console.log(document.querySelector(`svg`));
+//    console.log(document.querySelector(`svg > path`));
+    const path = document.querySelector(`svg > path`);
+    //console.log(path)
+    if (v) {v = path.getTotalLength();}
+    path.style.strokeDasharray = v;
+    path.style.strokeDashoffset = v;
+    console.log(`setOffset:${v}`);
+}
+*/
 document.querySelector(`[name="size"]`).addEventListener('input', (e)=>{
     const svg = document.querySelector(`svg`);
     const v = e.target.value;
@@ -56,11 +83,39 @@ document.querySelector(`[name="size"]`).addEventListener('input', (e)=>{
     svg.setAttribute('height', `${v}`);
     const path = document.querySelector(`path`);
     resetArc(path, e.target.value, document.querySelector(`[name="width"]`).value);
+//    const len = document.querySelector(`[name="offset"]`);
+//    len.value = len.max;
 });
 document.querySelector(`[name="width"]`).addEventListener('input', (e)=>{
     const path = document.querySelector(`path`);
     resetArc(path, document.querySelector(`[name="size"]`).value, e.target.value);
+//    document.querySelector(`[name="offset"]`).max = path.getTotalLength();
+//    const len = document.querySelector(`[name="offset"]`);
+//    len.value = len.max;
 });
+document.querySelector(`[name="offset"]`).addEventListener('input', (e)=>{
+    updateMaxOffset(e.target.value);
+    const path = document.querySelector(`path`);
+    path.style.strokeDashoffset = e.target.value;
+    /*
+    const svg = document.querySelector(`svg`);
+//    const path = document.querySelector(`svg > path`);
+    const v = e.target.value;
+    svg.setAttribute('viewBox', `0 0 ${v} ${v}`);
+    svg.setAttribute('width', `${v}`);
+    svg.setAttribute('height', `${v}`);
+    const path = document.querySelector(`path`);
+    resetArc(path, document.querySelector(`[name="size"]`).value, document.querySelector(`[name="width"]`).value);
+    setOffset(e.target.value);
+    */
+    /*
+    */
+});
+//document.querySelector(`[name="offset"]`).max = document.querySelector(`svg > path`)
+document.querySelector(`[name="size"]`).focus();
 document.body.appendChild(makeArc());
+//setOffset(99);
+updateMaxOffset();
+
 </script>
 </body>
