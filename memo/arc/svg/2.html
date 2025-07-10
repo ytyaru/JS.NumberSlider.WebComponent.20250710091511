@@ -1,0 +1,38 @@
+<!--https://zenn.dev/nishinoshake/articles/694d949fb0f717-->
+<!--
+<svg viewBox="0 0 128 128" width="128" height="128">
+    <path d="M64 1 A63 63 0 1 1 64 127 A63 63 0 1 1 64 1" stroke="#333" stroke-width="2" fill="none"/>
+</svg>
+-->
+<body>
+<script>
+const SVG_NS = 'http://www.w3.org/2000/svg';
+function mkSvgEl(tagName) {return document.createElementNS(SVG_NS ,tagName)}
+function mkSvg(W,H){
+    if (!H) {H=W}
+    const svg = mkSvgEl('svg');
+    svg.setAttribute('viewBox', `0 0 ${W} ${H}`);
+    svg.setAttribute('width', `${W}`);
+    svg.setAttribute('height', `${H}`);
+    return svg;
+}
+function mkArc(SIZE, WIDTH) {
+    const path = mkSvgEl('path');
+    const size = (SIZE/2);
+    const width = (WIDTH / 2);
+    const sz = size - Math.ceil(width);
+    path.setAttribute('d', `M${size} 1 A${sz} ${sz} 0 1 1 ${size} ${SIZE-width} A${sz} ${sz} 0 1 1 ${size} ${width}`);
+    path.setAttribute('stroke', '#000');
+    path.setAttribute('stroke-width', `${WIDTH}`);
+    path.setAttribute('fill', 'none');
+    return path;
+}
+function makeArc() {
+    const svg = mkSvg(128);
+    const path = mkArc(128, 2);
+    svg.append(path);
+    return svg;
+}
+document.body.appendChild(makeArc());
+</script>
+</body>

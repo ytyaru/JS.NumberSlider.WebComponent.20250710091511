@@ -1,0 +1,125 @@
+<!-- https://github.com/soundar24/roundSlider/blob/master/src/roundslider.js#L1806 -->
+<!--https://zenn.dev/nishinoshake/articles/694d949fb0f717-->
+<!--
+<svg viewBox="0 0 128 128" width="128" height="128">
+    <path d="M64 1 A63 63 0 1 1 64 127 A63 63 0 1 1 64 1" stroke="#333" stroke-width="2" fill="none"/>
+</svg>
+-->
+<body>
+<label>size</label><input type="number" name="size" style="width:48px" value="128">
+<label>width</label><input type="number" name="width" style="width:48px" value="2">
+<script>
+class ArcDrawer {
+    constructor(start=275, end=315) {this._start = start; this._end = end;} // start/end: 0〜360度
+    //d(startAngle, endAngle, outerRadius, innerRadius, lineCap) {
+    d(startAngle, endAngle, radius, halfWidth, lineCap) {
+        const [outerRadius, innerRadius] = [radius + halfWidth, radius - halfWidth];
+        const outerStart = this._polarToCartesian(outerRadius, startAngle);
+        return `M ${outerStart} ${this.#arc(startAngle, endAngle, innerRadius, true)}`;
+        //return `M ${outerStart} ${this.#arc(startAngle, endAngle, innerRadius, false)}`;
+    }
+    #arc(startAngle, endAngle, radius, isReverseDirection) {//開始角度、終了角度、半径、逆向き
+        const actualEndAngle = endAngle;
+        // For inverted range (and consider semi circle), the range should start from the Start angle
+        // and will end in the slider end. And again start with the slider start and ends with the End angle
+        const isInvertedRange = (startAngle > endAngle);
+        if (isInvertedRange) {endAngle = this._end;}
+        const isCircle = (endAngle - startAngle == 360);
+        const largeArcFlag = Math.abs(startAngle - endAngle) <= 180 ? "0" : "1";
+        const direction = isReverseDirection ? 0 : 1;
+        const _endAngle = isReverseDirection ?  startAngle : endAngle;
+        const endPoint = this._polarToCartesian(radius, _endAngle);
+        const path = [];
+        // if it is a perfect circle then draw two half circles, otherwise draw arc
+        if (isCircle) {
+            const midAngle = (startAngle + endAngle) / 2;
+            const midPoint = this._polarToCartesian(radius, midAngle);
+            path.push(
+                "A", 1, 1, 0, 0, direction, midPoint,
+                "A", 1, 1, 0, 0, direction, endPoint
+            );
+        }
+        else {
+            path.push(
+                "A", radius, radius, 0, largeArcFlag, direction, endPoint
+            );
+            if (isInvertedRange) {
+                const sliderStartAngle = this._start;
+                const sliderStartPoint = this._polarToCartesian(radius, sliderStartAngle);
+                path.push(
+                    "M " + sliderStartPoint,
+                    this._drawArc(sliderStartAngle, actualEndAngle, radius)
+                );
+            }
+        }
+        return path.join(" ");
+    }
+    _polarToCartesian(radius, angleInDegrees) {
+        const angleInRadians = (angleInDegrees - 180) * Math.PI / 180;
+        //const centerXY = this.options.radius;
+        const centerXY = radius;
+        return [
+            centerXY + (radius * Math.cos(angleInRadians)),
+            centerXY + (radius * Math.sin(angleInRadians))
+        ].join(" ");
+    };
+}
+const drawer = new ArcDrawer();
+const SVG_NS = 'http://www.w3.org/2000/svg';
+function mkSvgEl(tagName) {return document.createElementNS(SVG_NS ,tagName)}
+function mkSvg(W,H){
+    if (!H) {H=W}
+    const svg = mkSvgEl('svg');
+    svg.setAttribute('viewBox', `0 0 ${W} ${H}`);
+    svg.setAttribute('width', `${W}`);
+    svg.setAttribute('height', `${H}`);
+    return svg;
+}
+function mkArc(SIZE, WIDTH) {
+    const path = mkSvgEl('path');
+    const size = (SIZE/2);
+    const width = (WIDTH / 2);
+    const sz = size - Math.ceil(width);
+    //path.setAttribute('d', `M${size} 1 A${sz} ${sz} 0 1 1 ${size} ${SIZE-width} A${sz} ${sz} 0 1 1 ${size} ${width}`);
+    //path.setAttribute('d', `M${size} 1 A${sz} ${sz} 0 1 1 ${size} ${SIZE-width} A${sz} ${sz} 0 1 1 ${size} ${width}`);
+    const d = drawer.d(275, 315, size, width, false);
+    console.log(d)
+    path.setAttribute('d', d);
+    path.setAttribute('stroke', '#000');
+    path.setAttribute('stroke-width', `${WIDTH}`);
+    path.setAttribute('fill', 'none');
+    return path;
+}
+function resetArc(path, SIZE, WIDTH) {
+    const size = (SIZE/2);
+    const width = (WIDTH / 2);
+    const sz = size - Math.ceil(width);
+    //path.setAttribute('d', `M${size} 1 A${sz} ${sz} 0 1 1 ${size} ${SIZE-width} A${sz} ${sz} 0 1 1 ${size} ${width}`);
+//    path.setAttribute('d', drawer.draw(275, 315, size, false));
+    const d = drawer.d(275, 315, size, width, false);
+    console.log(d)
+    path.setAttribute('d', d);
+    path.setAttribute('stroke-width', `${WIDTH}`);
+}
+function makeArc() {
+    const svg = mkSvg(128);
+    const path = mkArc(128, 2);
+    svg.append(path);
+    return svg;
+}
+document.querySelector(`[name="size"]`).addEventListener('input', (e)=>{
+    const svg = document.querySelector(`svg`);
+    const v = e.target.value;
+    svg.setAttribute('viewBox', `0 0 ${v} ${v}`);
+    svg.setAttribute('width', `${v}`);
+    svg.setAttribute('height', `${v}`);
+    const path = document.querySelector(`path`);
+    resetArc(path, e.target.value, document.querySelector(`[name="width"]`).value);
+});
+document.querySelector(`[name="width"]`).addEventListener('input', (e)=>{
+    const path = document.querySelector(`path`);
+    resetArc(path, document.querySelector(`[name="size"]`).value, e.target.value);
+});
+document.body.appendChild(makeArc());
+</script>
+</body>

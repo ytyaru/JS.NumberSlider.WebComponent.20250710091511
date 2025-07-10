@@ -1,0 +1,40 @@
+<!-- CSSでは円のみ。円弧は描けない！ -->
+
+<style>
+.slider {
+    width: 300px;
+    height: 300px;
+    border: 1px solid #f00;
+    border-radius: 300px;
+}
+</style>
+
+<div class="slider"></div>
+
+<svg width="100" height="100">
+<!--
+  <path d="M 0 0 a 10 10 0 1 0 -30 0" fill="none" stroke="red"></path>
+-->
+  <path d="M 90,0 a 90 90 0 0 1 -90,90" fill="none" stroke="black"/>
+
+  <!-- A|a: rx,ry,x-axis-rotation,large-arch-flag,sweep-flag,dx,dy -->
+  <path d="M0,0 a100 100 0 0 0 100 100" fill="none" stroke="green"/>
+  <path d="M0,0 a100 100 0 1 1 100 100" fill="none" stroke="yellow"/>
+  <path d="M0,0 a100 100 0 1 0 100 100" fill="none" stroke="magenta"/>
+  <path d="M0,0 a100 100 0 0 1 100 100" fill="none" stroke="cyan"/>
+  <!-- 
+  <path d="M0,0 a100 100 0 0 0 100 100" fill="none" stroke="green"/>
+  <path d="M0,80 a20 80 0 0 0 80 80" fill="none" stroke="green"/>
+    <path d="M10,100 a40 40 0 0 0 90 100" fill="none" stroke="red"/>
+  -->
+</svg>
+<svg width="100" height="100">
+    <path d="M0,0 a50 50 0 0 0 50 50" fill="none" stroke="red"/>
+    <path d="M0,0 a50 50 0 1 1 50 50" fill="none" stroke="blue"/>
+    <path d="M0,0 a0 0 0 0 1 50 50" fill="none" stroke="green"/>
+</svg>
+
+<!--https://zenn.dev/nishinoshake/articles/694d949fb0f717-->
+<svg viewBox="0 0 128 128" width="128" height="128">
+    <path d="M64 1 A63 63 0 1 1 64 127 A63 63 0 1 1 64 1" stroke="#333" stroke-width="2" fill="none"/>
+</svg>
