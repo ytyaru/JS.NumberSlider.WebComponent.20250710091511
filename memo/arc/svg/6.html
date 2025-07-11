@@ -1,0 +1,80 @@
+<!--https://zenn.dev/nishinoshake/articles/694d949fb0f717-->
+<!--
+<svg viewBox="0 0 128 128" width="128" height="128">
+    <path d="M64 1 A63 63 0 1 1 64 127 A63 63 0 1 1 64 1" stroke="#333" stroke-width="2" fill="none"/>
+</svg>
+-->
+<body>
+<label>size</label><input type="number" name="size" style="width:48px" value="128" min="1" max="999">
+<label>width</label><input type="number" name="width" style="width:48px" value="2" min="1" max="999">
+<label>offset</label><input type="number" name="offset" style="width:48px" value="0" min="1"><label>/</label><label name="maxOffset">0</label>
+<script>
+class SvgEl {static make(tagName){return document.createElementNS('http://www.w3.org/2000/svg', tagName)}}
+class Arc {
+    constructor(size, width) {
+        this._length = 0;
+        this._el = this.#mkEl(size, width);
+    }
+    get el() {return this._el}
+    get length() {return this._length}// 弧の外周の長さ this._path.getTotalLength()
+    #mkEl(size, width) {
+        this._el = this.#mkSvg(size, size);
+        this._path = this.#mkPath(size, width);
+        this._length = this._path.getTotalLength();
+        this._path.style.strokeDasharray = this._length;
+        this._path.style.strokeDashoffset = this._length;
+        this._el.appendChild(this._path);
+        return this._el;
+    }
+    #mkSvg(width, height){return this.#setAttrs(SvgEl.make('svg'), {viewBox: `0 0 ${width} ${height}`, width:width, height:height})}
+    #mkPath(SIZE, WIDTH) {
+        const path = SvgEl.make('path');
+        return this.#setAttrs(SvgEl.make('path'), {
+            d: this.#mkD(SIZE, WIDTH),
+            stroke: '#000',
+            'stroke-width': WIDTH,
+            fill: 'none',
+        });
+        return path;
+    }
+    #mkD(SIZE, WIDTH) {
+        const size = (SIZE/2);
+        const width = (WIDTH / 2);
+        const sz = size - Math.ceil(width);
+        return `M${size} ${width} A${sz} ${sz} 0 1 1 ${size} ${SIZE-width} A${sz} ${sz} 0 1 1 ${size} ${width}`;
+    }
+    update(SIZE, WIDTH, offset) {
+        this.#setAttrs(this._el, {viewBox: `0 0 ${SIZE} ${SIZE}`, width:SIZE, height:SIZE});
+        this.#setAttrs(this._path, {
+            d: this.#mkD(SIZE, WIDTH),
+            stroke: '#000',
+            'stroke-width': WIDTH,
+            fill: 'none',
+        });
+        this._length = this._path.getTotalLength();
+        this._path.style.strokeDasharray = this._length;
+        this._path.style.strokeDashoffset = offset ?? this._length;
+        console.log(this._length, this._path.style.strokeDasharray, this._path.style.strokeDashoffset)
+    }
+    #setAttrs(el, o) {console.log(o);for (let [k,v] of Object.entries(o)) {console.log('k:',k,'v:',v);el.setAttribute(k, v);}; return el;}
+}
+const [size, width, offset, maxOffset] = 'size width offset maxOffset'.split(' ').map(n=>document.querySelector(`[name="${n}"]`));
+size.addEventListener('input', (e)=>{
+    arc.update(e.target.value, document.querySelector(`[name="width"]`).value, document.querySelector(`[name="offset"]`).value);
+    maxOffset.textContent = Math.ceil(arc.length);
+});
+width.addEventListener('input', (e)=>{
+    arc.update(document.querySelector(`[name="size"]`).value, e.target.value, document.querySelector(`[name="offset"]`).value);
+    maxOffset.textContent = Math.ceil(arc.length);
+});
+offset.addEventListener('input', (e)=>{
+    arc.update(document.querySelector(`[name="size"]`).value, document.querySelector(`[name="width"]`).value, e.target.value);
+    maxOffset.textContent = Math.ceil(arc.length);
+});
+const arc = new Arc(size.value, width.value);
+offset.value = Math.ceil(arc.length);
+maxOffset.textContent = Math.ceil(arc.length);
+console.log(arc.length)
+document.body.appendChild(arc.el);
+</script>
+</body>
