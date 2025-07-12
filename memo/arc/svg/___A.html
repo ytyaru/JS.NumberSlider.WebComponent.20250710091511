@@ -1,0 +1,247 @@
+<!--https://zenn.dev/nishinoshake/articles/694d949fb0f717-->
+<!--
+<svg viewBox="0 0 128 128" width="128" height="128">
+    <path d="M64 1 A63 63 0 1 1 64 127 A63 63 0 1 1 64 1" stroke="#333" stroke-width="2" fill="none"/>
+</svg>
+-->
+<body>
+<label>size</label><input type="number" name="size" style="width:48px" value="128" min="1" max="999">
+<label>width</label><input type="number" name="width" style="width:48px" value="2" min="1" max="999">
+<label>offset</label><input type="number" name="offset" style="width:48px" value="0" min="0"><label>/</label><label name="maxOffset">0</label>
+<!--
+<label>startAngle</label><input type="number" name="startAngle" style="width:48px" value="0" min="0" max="360">
+<label>lengthAngle</label><input type="number" name="lengthAngle" style="width:48px" value="0" min="0" max="360">
+-->
+<label>startAngle</label><input type="number" name="startAngle" style="width:48px" value="-45" min="-360" max="360">
+<label>endAngle</label><input type="number" name="endAngle" style="width:48px" value="225" min="-360" max="360">
+<script>
+class SvgEl {static make(tagName){return document.createElementNS('http://www.w3.org/2000/svg', tagName)}}
+class Arc {
+    constructor(size, width) {
+        this._length = 0;
+        this._arcD = new ArcD(size, width); // radius, width
+        this._el = this.#mkEl(size, width);
+    }
+    get el() {return this._el}
+    get length() {return this._length}// 弧の外周の長さ this._path.getTotalLength()
+    #mkEl(size, width) {
+        console.log(size, width)
+        this._el = this.#mkSvg(size, size);
+        this._path = this.#mkPath(size, width);
+        this._length = this._path.getTotalLength();
+        this._path.style.strokeDasharray = this._length;
+        this._path.style.strokeDashoffset = this._length;
+        this._el.appendChild(this._path);
+        return this._el;
+    }
+    #mkSvg(width, height){return this.#setAttrs(SvgEl.make('svg'), {viewBox: `0 0 ${width} ${height}`, width:width, height:height})}
+    #mkPath(SIZE, WIDTH) {
+        const path = SvgEl.make('path');
+        return this.#setAttrs(SvgEl.make('path'), {
+            d: this._arcD.drawPath(-45, 225, SIZE, WIDTH),//drawPath(startAngle, endAngle, outerRadius)
+            stroke: '#000',
+            'stroke-width': WIDTH,
+            fill: 'none',
+        });
+        return path;
+    }
+    update(SIZE, WIDTH, offset, startAngle=-45, endAngle=225) {
+        console.log(SIZE, WIDTH, offset, startAngle, endAngle)
+//        this.size = SIZE; this.width = WIDTH; this.offset = offset; this.startAngle = startAngle; this.endAngle = endAngle;
+        this.#setAttrs(this._el, {viewBox: `0 0 ${SIZE} ${SIZE}`, width:SIZE, height:SIZE});
+        this.#setAttrs(this._path, {
+            //d: this._arcD.drawPath(-45, 225, SIZE, WIDTH),//drawPath(startAngle, endAngle, outerRadius)
+            d: this._arcD.drawPath(startAngle, endAngle, SIZE, WIDTH),//drawPath(startAngle, endAngle, outerRadius)
+            //d: this._arcD.draw(),//drawPath(startAngle, endAngle, outerRadius)
+            stroke: '#000',
+            'stroke-width': WIDTH,
+            fill: 'none',
+        });
+        this.maxOffset = this._path.getTotalLength();
+        this._length = this._path.getTotalLength();
+        this._path.style.strokeDasharray = this._length;
+        this._path.style.strokeDashoffset = offset ?? this._length;
+        console.log(this._length, this._path.style.strokeDasharray, this._path.style.strokeDashoffset)
+    }
+    #setAttrs(el, o) {console.log(o);for (let [k,v] of Object.entries(o)) {console.log('k:',k,'v:',v);el.setAttribute(k, v);}; return el;}
+    /*
+    #mkD(SIZE, WIDTH) {//https://zenn.dev/nishinoshake/articles/694d949fb0f717
+        const size = (SIZE/2);
+        const width = (WIDTH / 2);
+        const sz = size - Math.ceil(width);
+        return `M${size} ${width} A${sz} ${sz} 0 1 1 ${size} ${SIZE-width} A${sz} ${sz} 0 1 1 ${size} ${width}`;
+    }
+    */
+    get offset() {return this._arcD.offset}
+    set offset(v) {this.#set('offset',v);}
+    get maxOffset() {return this._arcD.maxOffset}
+    set maxOffset(v) {this.#set('maxOffset',v);}
+
+    get size() {return this._arcD.size}
+    //set size(v) {this._arcD.size=v;this.update('size width offset startAngle endAngle'.split(' ').map(n=>this[n]));}
+    set size(v) {this.#set('size',v);}
+    get width() {return this._arcD.width}
+    //set width(v) {this._arcD.width=v;this.update('size width offset startAngle endAngle'.split(' ').map(n=>this[n]));}
+    set width(v) {this.#set('width',v);}
+    get startAngle() {return this._arcD.startAngle}
+    //set startAngle(v) {this._startAngle=v;this.update('size width offset startAngle endAngle'.split(' ').map(n=>this[n]));}
+    set startAngle(v) {this.#set('startAngle',v);}
+    get endAngle() {return this._arcD.endAngle}
+    //set endAngle(v) {this._endAngle=v;this.update('size width offset startAngle endAngle'.split(' ').map(n=>this[n]));}
+    set endAngle(v) {this.#set('endAngle',v);}
+    #set(name,v){this._arcD[name]=v;this.update('size width offset startAngle endAngle'.split(' ').map(n=>this._arcD[n]));}
+}
+//https://github.com/soundar24/roundSlider/blob/master/src/roundslider.js#L1806
+class ArcD {
+    constructor(size, width) {
+        this._d = null;
+        this.size = size;
+        this.width = width;
+
+    }
+    get d() {return this._d}
+    get size() {return this._size}
+    set size(v) {
+        this.#size = v;
+//        this._d = this.drawPath(this.startAngle, this.endAngle, this.size, this.width);
+    }
+    set #size(v) {
+        this._size = v;
+        this._radius = (v / 2) - (this._width / 2);//- this._width; 
+    }
+    get width() {return this._width}
+    set width(v) {
+        this.#width = v;
+//        this._d = this.drawPath(this.startAngle, this.endAngle, this.size, this.width);
+    }
+    set #width(v) {
+        this._width = v;
+        this._radius = (this._size / 2) - (v / 2);//- v;
+    }
+    get radius() {return this._radius}
+    get offset() {return this._offset}
+    set offset(v) {if (0<=v && v<=this.maxOffsetthis._offset){this._offset=v}}
+    get maxOffset() {return this._offset}
+    get maxOffset() {this._maxOffset=v}
+    set maxOffset(v) {this._offset=0}
+    get startAngle() {return this._startAngle}
+    set startAngle(v) {
+        this.#startAngle = v;
+//        this._d = this.drawPath(this.startAngle, this.endAngle, this.size, this.width);
+    }
+    set #startAngle(v) {this._startAngle = v % 360;}
+    get endAngle() {return this._endAngle}
+    set endAngle(v) {
+        this.#endAngle = v;
+//        this._d = this.drawPath(this.startAngle, this.endAngle, this.size, this.width);
+    }
+    set #endAngle(v) {this._endAngle = v % 360;}
+    draw() {
+        const start = this._polarToCartesian(this.radius, this.startAngle);
+        const arc = this._drawArc(this.startAngle, this.endAngle, this.radius);
+        this._d = `M ${start} ${arc}`;
+        return this._d;
+    }
+    drawPath(startAngle, endAngle, SIZE, WIDTH){
+        /*
+        this.#startAngle = startAngle;
+        this.#endAngle = endAngle;
+        this.#size = SIZE;
+        this.#width = WIDTH;
+        */
+        this.#size = SIZE;
+        this.#width = WIDTH;
+        const start = this._polarToCartesian(this.radius, startAngle);
+        const arc = this._drawArc(startAngle, endAngle, this.radius);
+        //const arc = this._drawArc(this.startAngle, this.endAngle, this.radius);
+        this._d = `M ${start} ${arc}`;
+        return this._d;
+    }
+    _drawArc(startAngle, endAngle, radius, isReverseDirection) {
+        var actualEndAngle = endAngle;
+        // For inverted range (and consider semi circle), the range should start from the Start angle
+        // and will end in the slider end. And again start with the slider start and ends with the End angle
+        var isInvertedRange = (startAngle > endAngle);
+        if (isInvertedRange) {
+            endAngle = this._end;
+        }
+    
+        var isCircle = (endAngle - startAngle == 360);
+        var largeArcFlag = Math.abs(startAngle - endAngle) <= 180 ? "0" : "1";
+        var direction = isReverseDirection ? 0 : 1;
+        var _endAngle = isReverseDirection ?  startAngle : endAngle;
+        var endPoint = this._polarToCartesian(radius, _endAngle);
+    
+        var path = [];
+    
+        // if it is a perfect circle then draw two half circles, otherwise draw arc
+        if (isCircle) {
+            var midAngle = (startAngle + endAngle) / 2;
+            var midPoint = this._polarToCartesian(radius, midAngle);
+            path.push(
+                "A", 1, 1, 0, 0, direction, midPoint,
+                "A", 1, 1, 0, 0, direction, endPoint
+            );
+        }
+        else {
+            path.push(
+                "A", radius, radius, 0, largeArcFlag, direction, endPoint
+            );
+    
+            if (isInvertedRange) {
+                var sliderStartAngle = this._start;
+                var sliderStartPoint = this._polarToCartesian(radius, sliderStartAngle);
+    
+                path.push(
+                    "M " + sliderStartPoint,
+                    this._drawArc(sliderStartAngle, actualEndAngle, radius)
+                );
+            }
+        }
+    
+        return path.join(" ");
+    }
+    // ### SVG related logic
+    _polarToCartesian(radius, angleInDegrees) {
+        var angleInRadians = (angleInDegrees - 180) * Math.PI / 180;
+        var centerXY = this.radius + (this.width/2);
+        return [
+            centerXY + (radius * Math.cos(angleInRadians)),
+            centerXY + (radius * Math.sin(angleInRadians))
+        ].join(" ");
+    }
+}
+const [size, width, offset, maxOffset, startAngle, endAngle] = 'size width offset maxOffset startAngle endAngle'.split(' ').map(n=>document.querySelector(`[name="${n}"]`));
+size.addEventListener('input', (e)=>{
+    arc.size = e.target.value;
+//    arc.update(e.target.value, document.querySelector(`[name="width"]`).value, document.querySelector(`[name="offset"]`).value);
+    maxOffset.textContent = Math.ceil(arc.length);
+});
+width.addEventListener('input', (e)=>{
+    arc.width = e.target.value;
+//    arc.update(document.querySelector(`[name="size"]`).value, e.target.value, document.querySelector(`[name="offset"]`).value);
+    maxOffset.textContent = Math.ceil(arc.length);
+});
+offset.addEventListener('input', (e)=>{
+    arc.offset = e.target.value;
+//    arc.update(document.querySelector(`[name="size"]`).value, document.querySelector(`[name="width"]`).value, e.target.value);
+    maxOffset.textContent = Math.ceil(arc.length);
+});
+startAngle.addEventListener('input', (e)=>{
+    arc.startAngle = e.target.value;
+//    arc.update(document.querySelector(`[name="size"]`).value, document.querySelector(`[name="width"]`).value, e.target.value);
+    maxOffset.textContent = Math.ceil(arc.length);
+});
+endAngle.addEventListener('input', (e)=>{
+    arc.endAngle = e.target.value;
+//    arc.update(document.querySelector(`[name="size"]`).value, document.querySelector(`[name="width"]`).value, e.target.value);
+    maxOffset.textContent = Math.ceil(arc.length);
+});
+const arc = new Arc(size.value, width.value);
+offset.value = 0;
+maxOffset.textContent = Math.ceil(arc.length);
+//arc.update(size.value, width.value, offset.value);
+console.log(arc.length)
+document.body.appendChild(arc.el);
+</script>
+</body>
