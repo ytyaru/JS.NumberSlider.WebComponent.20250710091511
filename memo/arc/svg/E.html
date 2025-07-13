@@ -1,0 +1,331 @@
+<!--https://zenn.dev/nishinoshake/articles/694d949fb0f717-->
+<!--
+<svg viewBox="0 0 128 128" width="128" height="128">
+    <path d="M64 1 A63 63 0 1 1 64 127 A63 63 0 1 1 64 1" stroke="#333" stroke-width="2" fill="none"/>
+</svg>
+-->
+<body>
+<label title="キャンバスの大きさ">size</label><input type="number" name="size" style="width:48px" value="128" min="1" max="999">
+<label title="円弧の太さ">width</label><input type="number" name="width" style="width:48px" value="2" min="1" max="999">
+<label title="円弧を非可視化する長さ(終点からの長さ)">offset</label><input type="number" name="offset" style="width:48px" value="0" min="0"><label>/</label><label name="maxOffset" title="円弧の長さ">0</label>
+<label title="始点と終点の中心点となる角度">centerAngle</label><input type="number" name="centerAngle" style="width:48px" value="270" min="0" max="360">
+<label title="円弧の長さとなる角度">lengthAngle</label><input type="number" name="lengthAngle" style="width:48px" value="270" min="0" max="360">
+<label title="反時計回り" style="cursor:pointer;"><input type="checkbox" name="antiClockwise" style="cursor:pointer;">antiClockwise</label>
+<label title="パイ" style="cursor:pointer;"><input type="checkbox" name="pie" style="cursor:pointer;">pie</label>
+<script>
+class SvgEl {static make(tagName){return document.createElementNS('http://www.w3.org/2000/svg', tagName)}}
+class Arc {
+    constructor(size, width) {
+        this._length = 0;
+        this._arcD = new ArcD(size, width); // radius, width
+        this._pieD = new PieD();
+
+
+        this._el = this.#mkEl(size, width);
+    }
+    get el() {return this._el}
+    get length() {return this._length}// 弧の外周の長さ this._path.getTotalLength()
+    #mkEl(size, width) {
+        this._el = this.#mkSvg(size, size);
+        this._path = this.#mkPath(size, width);
+        this._length = this._path.getTotalLength();
+        this._path.style.strokeDasharray = this._length;
+        this._path.style.strokeDashoffset = this._length;
+        this._el.appendChild(this._path);
+        return this._el;
+    }
+    #mkSvg(width, height){return this.#setAttrs(SvgEl.make('svg'), {viewBox: `0 0 ${width} ${height}`, width:width, height:height})}
+    #mkPath(SIZE, WIDTH) {
+        const path = SvgEl.make('path');
+        return this.#setAttrs(SvgEl.make('path'), {
+            d: this._arcD.drawPath(SIZE, WIDTH, 270, 270, false),
+            stroke: '#000',
+            'stroke-width': WIDTH,
+            fill: 'none',
+        });
+        return path;
+    }
+    #mkD(SIZE, WIDTH) {//https://zenn.dev/nishinoshake/articles/694d949fb0f717
+        const size = (SIZE/2);
+        const width = (WIDTH / 2);
+        const sz = size - Math.ceil(width);
+        return `M${size} ${width} A${sz} ${sz} 0 1 1 ${size} ${SIZE-width} A${sz} ${sz} 0 1 1 ${size} ${width}`;
+    }
+    update(SIZE, WIDTH, offset, centerAngle=270, lengthAngle=270, antiClockwise=false, pie=false) {
+        console.log(SIZE, WIDTH, offset, centerAngle, lengthAngle, antiClockwise);
+        this.#setAttrs(this._el, {viewBox: `0 0 ${SIZE} ${SIZE}`, width:SIZE, height:SIZE});
+        this.#setAttrs(this._path, {
+//            d: this._arcD.drawPath(SIZE, WIDTH, centerAngle, lengthAngle, antiClockwise),
+//            d: fill ? this._pieD.d(SIZE, SIZE, SIZE, lengthAngle)
+            d: pie ? this._pieD.d(SIZE/2, SIZE/2, (SIZE/2)-(WIDTH/2), centerAngle, lengthAngle)
+                : this._arcD.drawPath(SIZE, WIDTH, centerAngle, lengthAngle, antiClockwise),
+//        this._pieD.d(this.size, this.size, this.size, this.lengthAngle)
+//            'stroke-width': WIDTH,
+            'stroke-width': pie ? '0' : WIDTH,
+            stroke: 'currentColor', // #000
+            fill: `${pie ? 'currentColor' : 'none'}`,// none/currentColor
+            //fill: 'none',// none/currentColor
+        });
+        this._length = this._path.getTotalLength();
+        this._path.style.strokeDasharray = this._length;
+        this._path.style.strokeDashoffset = offset ?? this._length;
+        console.log(this._length, this._path.style.strokeDasharray, this._path.style.strokeDashoffset)
+    }
+    #setAttrs(el, o) {console.log(o);for (let [k,v] of Object.entries(o)) {console.log('k:',k,'v:',v);el.setAttribute(k, v);}; return el;}
+}
+//https://github.com/soundar24/roundSlider/blob/master/src/roundslider.js#L1806
+class ArcD {
+    constructor(size, width, centerAngle=270, lengthAngle=270, antiClockwise=false) {
+        this.size = size;
+        this.width = width;
+        this._antiClockwise = antiClockwise;
+        this._centerAngle = centerAngle;
+        this._lengthAngle = lengthAngle;
+        this.#calcStartEndAngle(this._centerAngle, this._lengthAngle, this._antiClockwise);
+    }
+    get size() {return this._size}
+    set size(v) {
+        this._size = v;
+        this._radius = (v / 2) - (this._width / 2);//- this._width; 
+    }
+    get width() {return this._width}
+    set width(v) {
+        this._width = v;
+        this._radius = (this._size / 2) - (v / 2);//- v;
+    }
+    get radius() {return this._radius}
+    get centerAngle() {return this._centerAngle}
+    set centerAngle(v) {//v:0〜360
+        //this._centerAngle = Number(v)+180;
+        this._centerAngle = (Number(v)+180)%360;
+        this.#calcStartEndAngle(this._centerAngle, this.lengthAngle, this._antiClockwise);
+    }
+    get lengthAngle() {return this._lengthAngle}
+    set lengthAngle(v) {//v:0〜360
+        this._lengthAngle = ((Number(v)/2)%360);
+        this.#calcStartEndAngle(this.centerAngle, this._lengthAngle, this._antiClockwise);
+    }
+    get antiClockwise() {return this._antiClockwise}
+    set antiClockwise(v) {
+        this._antiClockwise = !!v
+        this.#calcStartEndAngle(this.centerAngle, this.lengthAngle, this._antiClockwise);
+    }
+    #calcStartEndAngle(centerAngle, lengthAngle, antiClockwise) {
+        this._startAngle = centerAngle - lengthAngle;
+        this._endAngle = centerAngle + lengthAngle;
+//        this._startAngle = centerAngle - (lengthAngle * (antiClockwise ? -1 : 1));
+//        this._endAngle = centerAngle + (lengthAngle * (antiClockwise ? -1 : 1));
+    }
+
+    drawPath(SIZE, WIDTH, centerAngle, lengthAngle, antiClockwise=false) {
+        this.size = SIZE;
+        this.width = WIDTH;
+        this.centerAngle = centerAngle;
+        this.lengthAngle = lengthAngle;
+        this.antiClockwise = antiClockwise;
+//        const start = this._polarToCartesian(this.radius, this._startAngle);
+        const start = this._polarToCartesian(this.radius, (antiClockwise ? this._endAngle : this._startAngle));
+        console.log(start, this._startAngle, this._endAngle)
+        const arc = this._drawArc(this._startAngle, this._endAngle, this.radius, antiClockwise);
+        //const arc = this._drawArc(this._startAngle, this._endAngle, this.radius);
+        return `M ${start} ${arc}`;
+    }
+    /*
+    drawPath(startAngle, endAngle, SIZE, WIDTH){
+        this.size = SIZE;
+        this.width = WIDTH;
+        const start = this._polarToCartesian(this.radius, startAngle);
+        const arc = this._drawArc(startAngle, endAngle, this.radius);
+        return `M ${start} ${arc}`;
+    }
+    */
+    _drawArc(startAngle, endAngle, radius, isReverseDirection) {
+        var actualEndAngle = endAngle;
+        // For inverted range (and consider semi circle), the range should start from the Start angle
+        // and will end in the slider end. And again start with the slider start and ends with the End angle
+        var isInvertedRange = (startAngle > endAngle);
+        if (isInvertedRange) {
+//            endAngle = this._end;
+//            endAngle = this._calcEndAngle(startAngle, endAngle);
+        }
+    
+        var isCircle = (endAngle - startAngle == 360);
+        var largeArcFlag = Math.abs(startAngle - endAngle) <= 180 ? "0" : "1";
+        var direction = isReverseDirection ? 0 : 1;
+        var _endAngle = isReverseDirection ?  startAngle : endAngle;
+        var endPoint = this._polarToCartesian(radius, _endAngle);
+    
+        var path = [];
+    
+        // if it is a perfect circle then draw two half circles, otherwise draw arc
+        if (isCircle) {
+            var midAngle = (startAngle + endAngle) / 2;
+            var midPoint = this._polarToCartesian(radius, midAngle);
+            path.push(
+                "A", 1, 1, 0, 0, direction, midPoint,
+                "A", 1, 1, 0, 0, direction, endPoint
+            );
+        }
+        else {
+            path.push(
+                "A", radius, radius, 0, largeArcFlag, direction, endPoint
+            );
+    
+            if (isInvertedRange) {
+                //var sliderStartAngle = this._start;
+                var sliderStartAngle = startAngle % 360;
+                if (sliderStartAngle < 0) {sliderStartAngle+=360}
+                var sliderStartPoint = this._polarToCartesian(radius, sliderStartAngle);
+    
+                path.push(
+                    "M " + sliderStartPoint,
+//                    this._drawArc(sliderStartAngle, actualEndAngle, radius)
+                    this._drawArc(sliderStartAngle, actualEndAngle, radius, isReverseDirection)
+                );
+            }
+        }
+    
+        return path.join(" ");
+    }
+    // ### SVG related logic
+    _polarToCartesian(radius, angleInDegrees) {
+        var angleInRadians = (angleInDegrees - 180) * Math.PI / 180;
+        var centerXY = this.radius + (this.width/2);
+        return [
+            centerXY + (radius * Math.cos(angleInRadians)),
+            centerXY + (radius * Math.sin(angleInRadians))
+        ].join(" ");
+    }
+
+    _calcEndAngle(startAngle, endAngle) {
+        var end = this._calcRelativeValue(endAngle, startAngle) % 360;
+        if (end <= startAngle) {end += 360};
+        return end;
+    }
+
+    _validateStartAngle() {
+        var o = this.options, start = o.startAngle;
+        start = (this._isNumber(start) ? parseFloat(start) : 0) % 360;
+        if (start < 0) start += 360;
+        o.startAngle = start;
+        return start;
+    }
+    _validateEndAngle() {
+        var o = this.options, start = o.startAngle;
+        var end = this._calcRelativeValue(o.endAngle, start);
+        end %= 360;
+        if (end <= start) end += 360;
+        return end;
+    }
+    _calcRelativeValue(value, baseValue) {
+        var strValue = "" + value;
+        value = parseFloat(value);
+//        if (this._isNumber(strValue)) {
+        if ('number'===typeof (strValue) && !isNaN(strValue)) {
+            if (strValue.charAt(0) === "+" || strValue.charAt(0) === "-") {
+                value += baseValue;
+            }
+        }
+        else value = baseValue;
+        return value;
+    }
+}
+// http://knowledgecodejp.blogspot.com/2015/12/svg.html
+class PieD {
+    constructor(size, width, centerAngle=270, lengthAngle=270, antiClockwise=false) {
+    }
+    /**
+     * 円弧専用 d属性出力関数
+     * @param {number} cx - 中心のx座標
+     * @param {number} cy - 中心のy座標
+     * @param {number} r - 半径
+     * @param {number} a - 角度 (0 <= a < 360)
+     * @param {number} ca - 開始終了中心角度 (0 <= a < 360)
+     * @param {number} la - 長さ角度 (0 <= a < 360)
+     * @param {number} s - 傾き (0 <= s)
+     * @returns {string} d属性
+     * 
+     * usage
+     *  d(150, 150, 150, 183.096, 0)
+     */
+    //d(cx, cy, r, a, s=0) {
+    d(cx, cy, r, ca, la, s=0) {
+        cx=Number(cx);cy=Number(cy);r=Number(r);ca=Number(ca);la=Number(la);s=Number(s);
+        ca-=(180-((360-la)/2));
+//        ca-=180+((360-la)/2)-90;
+//        ca-=(360-(la%360))/2; // la:270, ca:315
+//        if (180<la) {ca-=(360-(la%360))/2}
+//        if (180<la) {ca-=((la%360)-360)/2 + 90}
+//        if (180<la) {ca-=180}
+//        ca-=((la%360) /360)/2;
+//        ca = (la/2);
+//        cx=Number(cx);cy=Number(cy);r=Number(r);ca=Number(ca);la=Number(la);s=Number(s);
+//        cx=Number(cx);cy=Number(cy);r=Number(r);a=Number(a);s=Number(s);
+//        const rad1 = (s - 90) / 180 * Math.PI,
+//              rad2 = (a + s - 90) / 180 * Math.PI,
+//        const rad1 = (s - ca) / 180 * Math.PI,
+//              rad2 = (la + s - ca) / 180 * Math.PI,
+        const rad1 = (s + ca) / 180 * Math.PI,
+              rad2 = (la + s + ca) / 180 * Math.PI,
+              params = [
+                  cx + r * Math.cos(rad1), cy + r * Math.sin(rad1),
+                  r, r,
+                  //a > 180 && 1 || 0,
+                  la > 180 && 1 || 0,
+                  cx + r * Math.cos(rad2), cy + r * Math.sin(rad2),
+                  cx, cy
+              ];
+        return params.reduce((s,p)=>s.replace('%d', p), `M %d,%d A %d,%d 0 %d,1 %d,%d L %d,%d Z`);
+    }
+}
+function calcStartEndAngle(centerAngle, lengthAngle) {
+    //centerAngle = Number(centerAngle), lengthAngle = Number(lengthAngle);
+    centerAngle = Number(centerAngle)+180, lengthAngle = (Number(lengthAngle)/2);
+    let [s,e,h] = [0,0,0];
+    //h = (360 - lengthAngle)/2;
+    //h = (360 - lengthAngle);//隙間の度数
+    h = (lengthAngle);//隙間の度数
+    console.log(centerAngle - h, centerAngle + h)
+    return [centerAngle - h, centerAngle + h];
+}
+
+const [size, width, offset, maxOffset, centerAngle, lengthAngle, antiClockwise, pie] = 'size width offset maxOffset centerAngle lengthAngle antiClockwise pie'.split(' ').map(n=>document.querySelector(`[name="${n}"]`));
+//const {size, width, offset, maxOffset, centerAngle, lengthAngle, antiClockwise} = 'size width offset maxOffset centerAngle lengthAngle antiClockwise'.reduce((_,o)=>{o[n]=document.querySelector(`[name="${n}"]`);return o},{});
+
+size.addEventListener('input', (e)=>{
+    arc.update(e.target.value, width.value, offset.value, centerAngle.value, lengthAngle.value, antiClockwise.checked, pie.checked);
+    maxOffset.textContent = Math.ceil(arc.length);
+});
+width.addEventListener('input', (e)=>{
+    arc.update(size.value, e.target.value, offset.value, centerAngle.value, lengthAngle.value, antiClockwise.checked, pie.checked);
+    maxOffset.textContent = Math.ceil(arc.length);
+});
+offset.addEventListener('input', (e)=>{
+    arc.update(size.value, width.value, e.target.value, centerAngle.value, lengthAngle.value, antiClockwise.checked, pie.checked);
+    maxOffset.textContent = Math.ceil(arc.length);
+});
+centerAngle.addEventListener('input', (e)=>{
+    arc.update(size.value, width.value, offset.value, e.target.value, lengthAngle.value, antiClockwise.checked, pie.checked);
+    maxOffset.textContent = Math.ceil(arc.length);
+});
+lengthAngle.addEventListener('input', (e)=>{
+    arc.update(size.value, width.value, offset.value, centerAngle.value, e.target.value, antiClockwise.checked, pie.checked);
+    maxOffset.textContent = Math.ceil(arc.length);
+});
+antiClockwise.addEventListener('input', (e)=>{
+    arc.update(size.value, width.value, offset.value, centerAngle.value, lengthAngle.value, e.target.checked, pie.checked);
+    maxOffset.textContent = Math.ceil(arc.length);
+});
+pie.addEventListener('input', (e)=>{
+    arc.update(size.value, width.value, offset.value, centerAngle.value, lengthAngle.value, antiClockwise.checked, e.target.checked);
+    maxOffset.textContent = Math.ceil(arc.length);
+});
+const arc = new Arc(size.value, width.value);
+offset.value = 0;
+maxOffset.textContent = Math.ceil(arc.length);
+arc.update(size.value, width.value, offset.value);
+size.focus();
+console.log(arc.length)
+document.body.appendChild(arc.el);
+</script>
+</body>
