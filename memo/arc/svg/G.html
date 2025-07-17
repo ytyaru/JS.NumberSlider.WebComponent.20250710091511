@@ -39,7 +39,7 @@ class Color {
         else {return null}
     }
     constructor(R,G,B,A=-1) {
-        this._. = {R:R, G:G, B:B, A:A, isNums:false, figs:0}
+        this._ = {R:R, G:G, B:B, A:A, isNums:false, figs:0}
     }
     // 返却値の型（数列／文字列）
     get isNums() {return this._.isNums}
@@ -48,7 +48,6 @@ class Color {
     get figs() {return this._.figs}
     set figs(v) {if ([-2,-1,0,3,6,8].some(x=>x===v)){this._.figs=v}}
         
-    }
     // 反転色
     reversal() {
         const nums = [255 - this._.R, 255 - this._.G, 255 - this._.B];
@@ -122,7 +121,7 @@ class Arc {
             r: WIDTH,
             stroke: 'currentColor',
             fill: 'currentColor',
-        };
+        });
     }
     #mkPath(clsNm, SIZE, WIDTH, opacity=1) {
         const path = SvgEl.make('path');
